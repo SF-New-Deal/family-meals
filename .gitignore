@@ -1,0 +1,11 @@
+node_modules/
+.aws-sam/
+samconfig.toml
+.env
+*.log
+dist/
+.DS_Store
+
+# Sensitive files - never commit these
+src/package.json
+src/package-lock.json

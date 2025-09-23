@@ -1,0 +1,14 @@
+version = 0.1
+
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "family-meals-lambda"
+s3_bucket = ""  # Will be auto-generated on first deploy
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = [
+    "AirtableApiKey=YOUR_AIRTABLE_API_KEY_HERE",
+    "AirtableBaseKey=YOUR_AIRTABLE_BASE_KEY_HERE"
+]
+region = "us-east-1"  # Change to your preferred region

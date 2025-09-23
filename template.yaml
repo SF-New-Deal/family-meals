@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  family-meals-lambda
+
+  SMS-based meal ordering system using Twilio and Airtable
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+
+Parameters:
+  AirtableApiKey:
+    Type: String
+    Description: Airtable API Key
+    NoEcho: true
+  AirtableBaseKey:
+    Type: String
+    Description: Airtable Base Key
+
+Resources:
+  FamilyMealsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: index.lambdaHandler
+      Runtime: nodejs18.x
+      Environment:
+        Variables:
+          AIRTABLE_API_KEY: !Ref AirtableApiKey
+          AIRTABLE_BASE_KEY: !Ref AirtableBaseKey
+      Events:
+        TwilioWebhook:
+          Type: Api
+          Properties:
+            Path: /webhook
+            Method: post
+
+Outputs:
+  TwilioWebhookApi:
+    Description: "API Gateway endpoint URL for Twilio webhook"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/webhook/"

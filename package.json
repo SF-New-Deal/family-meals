@@ -1,0 +1,16 @@
+{
+  "name": "family-meals-lambda",
+  "version": "1.0.0",
+  "description": "SMS-based meal ordering system for AWS Lambda",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "airtable": "^0.12.2",
+    "twilio": "^4.19.0"
+  },
+  "keywords": ["sms", "twilio", "airtable", "aws-lambda"],
+  "author": "",
+  "license": "ISC"
+}
