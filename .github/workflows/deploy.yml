@@ -1,0 +1,77 @@
+name: Deploy to AWS Lambda
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Copy package files to src
+      run: |
+        cp package.json src/
+        cp package-lock.json src/
+
+    - name: Setup AWS CLI
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Setup SAM CLI
+      uses: aws-actions/setup-sam@v2
+      with:
+        use-installer: true
+
+    - name: Build SAM application
+      run: sam build
+
+    - name: Deploy to AWS (PR - dry run)
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "This is a pull request. Skipping deployment."
+        echo "Would deploy with parameters:"
+        echo "AirtableApiKey: ${{ secrets.AIRTABLE_API_KEY }}"
+        echo "AirtableBaseKey: ${{ secrets.AIRTABLE_BASE_KEY }}"
+
+    - name: Deploy to AWS (main branch)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        sam deploy --no-confirm-changeset --resolve-s3 \
+          --parameter-overrides \
+            AirtableApiKey="${{ secrets.AIRTABLE_API_KEY }}" \
+            AirtableBaseKey="${{ secrets.AIRTABLE_BASE_KEY }}"
+
+    - name: Get API Gateway URL
+      if: github.ref == 'refs/heads/main'
+      run: |
+        API_URL=$(aws cloudformation describe-stacks \
+          --stack-name family-meals-lambda \
+          --query 'Stacks[0].Outputs[?OutputKey==`TwilioWebhookApi`].OutputValue' \
+          --output text)
+        echo "🚀 Deployment successful!"
+        echo "📞 Twilio Webhook URL: $API_URL"
+        echo "WEBHOOK_URL=$API_URL" >> $GITHUB_ENV
+
+    - name: Update deployment status
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "✅ Lambda function deployed successfully"
+        echo "🔗 Configure your Twilio webhook to: $WEBHOOK_URL"

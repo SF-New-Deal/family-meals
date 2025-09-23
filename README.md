@@ -63,8 +63,8 @@ Required tables:
 # Build the application
 sam build
 
-# Start local API
-sam local start-api
+# Start local API with environment variables
+sam local start-api --env-vars env.json
 
 # Test with curl
 curl -X POST http://localhost:3000/webhook \
@@ -73,9 +73,14 @@ curl -X POST http://localhost:3000/webhook \
 
 ### Deployment
 
+#### Automated (Recommended)
+- Push to `main` branch triggers automatic deployment via GitHub Actions
+- See [.github/DEPLOYMENT.md](.github/DEPLOYMENT.md) for setup instructions
+
+#### Manual
 ```bash
 # Deploy to AWS
-sam build && sam deploy
+sam build && sam deploy --resolve-s3
 ```
 
 ## Migration from Twilio Serverless
