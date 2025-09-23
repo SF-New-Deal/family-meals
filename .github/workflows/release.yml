@@ -1,0 +1,107 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Copy package files to src
+      run: |
+        cp package.json src/
+        cp package-lock.json src/
+
+    - name: Setup AWS CLI
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Setup SAM CLI
+      uses: aws-actions/setup-sam@v2
+      with:
+        use-installer: true
+
+    - name: Build SAM application
+      run: sam build
+
+    - name: Deploy production release
+      run: |
+        sam deploy --no-confirm-changeset --resolve-s3 \
+          --parameter-overrides \
+            AirtableApiKey="${{ secrets.AIRTABLE_API_KEY }}" \
+            AirtableBaseKey="${{ secrets.AIRTABLE_BASE_KEY }}"
+
+    - name: Get deployment info
+      id: deploy-info
+      run: |
+        API_URL=$(aws cloudformation describe-stacks \
+          --stack-name family-meals-lambda \
+          --query 'Stacks[0].Outputs[?OutputKey==`TwilioWebhookApi`].OutputValue' \
+          --output text)
+        echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+
+        FUNCTION_ARN=$(aws cloudformation describe-stacks \
+          --stack-name family-meals-lambda \
+          --query 'Stacks[0].Outputs[?OutputKey==`FamilyMealsFunction`].OutputValue' \
+          --output text 2>/dev/null || echo "N/A")
+        echo "function_arn=$FUNCTION_ARN" >> $GITHUB_OUTPUT
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get the previous tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+
+        if [ -n "$PREVIOUS_TAG" ]; then
+          echo "## What's Changed" > changelog.md
+          echo "" >> changelog.md
+          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> changelog.md
+        else
+          echo "## Initial Release" > changelog.md
+          echo "" >> changelog.md
+          echo "- Initial deployment of SMS meal ordering system" >> changelog.md
+          echo "- AWS Lambda function with Twilio webhook integration" >> changelog.md
+          echo "- Multi-language support (English, Arabic, Chinese, Spanish, Vietnamese)" >> changelog.md
+          echo "- Airtable database integration" >> changelog.md
+        fi
+
+        echo "" >> changelog.md
+        echo "## Deployment Information" >> changelog.md
+        echo "" >> changelog.md
+        echo "- **Webhook URL**: ${{ steps.deploy-info.outputs.api_url }}" >> changelog.md
+        echo "- **Function ARN**: ${{ steps.deploy-info.outputs.function_arn }}" >> changelog.md
+        echo "- **Deployment Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> changelog.md
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        body_path: changelog.md
+        draft: false
+        prerelease: false
+
+    - name: Notify success
+      run: |
+        echo "🎉 Release ${{ github.ref_name }} deployed successfully!"
+        echo "📞 Twilio Webhook URL: ${{ steps.deploy-info.outputs.api_url }}"

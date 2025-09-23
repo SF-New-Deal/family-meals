@@ -1,0 +1,49 @@
+name: 🏗️ Infrastructure Issue
+description: Report issues with AWS, deployment, or infrastructure
+title: "[INFRA] "
+labels: ["infrastructure", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Report issues related to AWS Lambda, deployment, or infrastructure.
+
+  - type: textarea
+    id: issue-description
+    attributes:
+      label: Issue description
+      description: What infrastructure issue are you experiencing?
+      placeholder: Describe the infrastructure issue...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component affected
+      description: Which part of the infrastructure is affected?
+      options:
+        - AWS Lambda Function
+        - API Gateway
+        - GitHub Actions
+        - Airtable Integration
+        - Twilio Webhook
+        - CloudWatch Logs
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-logs
+    attributes:
+      label: Error logs
+      description: Include any relevant error logs or stack traces
+      render: text
+      placeholder: Paste error logs here...
+
+  - type: textarea
+    id: deployment-info
+    attributes:
+      label: Deployment information
+      description: Recent deployments, commits, or changes
+      placeholder: Git commit hash, deployment time, etc...

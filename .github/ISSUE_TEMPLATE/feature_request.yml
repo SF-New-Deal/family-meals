@@ -1,0 +1,52 @@
+name: ✨ Feature Request
+description: Suggest a new feature for the SMS meal ordering system
+title: "[FEATURE] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please describe your idea below.
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature description
+      description: A clear description of the feature you'd like to see
+      placeholder: Describe the new feature...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Why would this feature be useful? What problem does it solve?
+      placeholder: Explain the use case...
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggested-solution
+    attributes:
+      label: Suggested solution
+      description: How do you think this feature should work?
+      placeholder: Describe your suggested implementation...
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve workflow
+        - High - Critical for operations
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context, mockups, or examples

@@ -1,0 +1,68 @@
+name: 🐛 Bug Report
+description: Report a bug in the SMS meal ordering system
+title: "[BUG] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below with as much detail as possible.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of what the bug is
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead?
+      placeholder: Describe what you expected...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Text the phone number...
+        2. Enter message...
+        3. See error...
+    validations:
+      required: true
+
+  - type: input
+    id: phone-number
+    attributes:
+      label: Phone number (if relevant)
+      description: The phone number that experienced the issue (we'll keep this private)
+      placeholder: "+1234567890"
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language used
+      description: What language was the conversation in?
+      options:
+        - English
+        - Arabic
+        - Chinese
+        - Spanish
+        - Vietnamese
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here
+      placeholder: Screenshots, logs, or additional details...
