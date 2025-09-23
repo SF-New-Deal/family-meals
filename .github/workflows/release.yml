@@ -45,6 +45,9 @@ jobs:
     - name: Deploy production release
       run: |
         sam deploy --no-confirm-changeset --resolve-s3 \
+          --stack-name family-meals-lambda \
+          --region us-east-1 \
+          --capabilities CAPABILITY_IAM \
           --parameter-overrides \
             AirtableApiKey="${{ secrets.AIRTABLE_API_KEY }}" \
             AirtableBaseKey="${{ secrets.AIRTABLE_BASE_KEY }}"
