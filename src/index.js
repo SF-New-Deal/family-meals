@@ -126,7 +126,7 @@ async function handle(phone_number, incoming_msg, event) {
         let hoods = await getHoods(restaurants);
         await set_user_fields(user_record, {"Neighborhoods Array": hoods.toString()})
 
-        let hood_list = "(2/2) ";
+        let hood_list = "";
         hoods.forEach(function (h) {
             n++;
             hood_list += `Text "${n}" for ${h}\n\n`;
@@ -173,7 +173,7 @@ async function handle(phone_number, incoming_msg, event) {
         // Build list items without repeating prefix/footer
         n = 0;
         let resto_arr=[];
-        let resto_list = "(2/2) ";
+        let resto_list = "";
 
         restaurants.forEach(function (r) {
             n++;
@@ -217,7 +217,7 @@ async function handle(phone_number, incoming_msg, event) {
             let hoods = await getHoods(restaurants);
             await set_user_fields(user_record, {"Neighborhoods Array": hoods.toString()})
 
-            let hood_list = "(2/2) ";
+            let hood_list = "";
             hoods.forEach(function (h) {
                 n++;
                 hood_list += `Text "${n}" for ${h}\n\n`;
@@ -327,7 +327,7 @@ async function handle(phone_number, incoming_msg, event) {
             // Build list items without repeating prefix/footer
             n = 0;
             let resto_arr=[];
-            let resto_list = "(2/2) ";
+            let resto_list = "";
 
             restaurants.forEach(function (r) {
                 n++;
