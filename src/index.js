@@ -1,6 +1,8 @@
 const {
     fallthrough,
     send_msg,
+    send_multiple_msgs,
+    split_on_newline,
     format_string,
     get_text,
     send_translated_msg,
@@ -115,20 +117,27 @@ async function handle(phone_number, incoming_msg, event) {
             return send_msg(text);
         }
 
-        let select_hood_txt = await get_text("Select Hood", language) + "\n";
-        let hood_template = await get_text("Text For Hood", language);
+        // Message 1: Header (1/2)
+        let select_hood_header = await get_text("Select Hood", language);
+
+        // Message 2+: List of neighborhoods (2/2)
+        // Build list items without repeating prefix/footer
         let n = 0;
         let hoods = await getHoods(restaurants);
         await set_user_fields(user_record, {"Neighborhoods Array": hoods.toString()})
+
+        let hood_list = "(2/2) ";
         hoods.forEach(function (h) {
             n++;
-            r_str = h;
-            r_str += "\n";
-            const formatted = format_string(hood_template, {NUMBER: n, SELECTION: r_str});
-            select_hood_txt += "\n" + formatted;
+            hood_list += `Text "${n}" for ${h}\n\n`;
         });
+        hood_list += 'To start over text "RESET".';
+
         await set_phase(user_record, 2);
-        return send_msg(select_hood_txt);
+        let messages = [select_hood_header];
+        let list_chunks = split_on_newline(hood_list.trim());
+        messages = messages.concat(list_chunks);
+        return send_multiple_msgs(messages);
     }
 
     // **********************************************
@@ -157,26 +166,29 @@ async function handle(phone_number, incoming_msg, event) {
         await set_user_fields(user_record, {"Neighborhood Choice": n});
         let restaurants = await get_restaurants_by_hood(n);
 
-        let r_question_txt = await get_text("Select Restaurant", language) + "\n";
-        let tf_template = await get_text("Text For Restaurant", language);
+        // Message 1: Header (1/2)
+        let resto_header = await get_text("Select Restaurant", language);
+
+        // Message 2+: List of restaurants (2/2)
+        // Build list items without repeating prefix/footer
         n = 0;
         let resto_arr=[];
+        let resto_list = "(2/2) ";
 
         restaurants.forEach(function (r) {
             n++;
-            r_str = r.get("DBA Name");
-            resto_arr.push(r_str);
-            r_str += " (" + r.get("Cuisine Type") + "): ";
-            r_str += r.get("Texting Script Address") + " ";
-            r_str += r.get("Open") + " - " + r.get("Close");
-            r_str += "\n";
-            const formatted = format_string(tf_template, {NUMBER: n, SELECTION: r_str});
-            r_question_txt += "\n" + formatted;
+            let r_name = r.get("DBA Name");
+            resto_arr.push(r_name);
+            resto_list += `Text "${n}" for ${r_name} (${r.get("Cuisine Type")}): ${r.get("Texting Script Address")} ${r.get("Open")} - ${r.get("Close")}\n\n`;
         });
+        resto_list += 'To start over text "RESET". To select a different neighborhood text "BACK".';
 
         await set_phase(user_record, 3);
         await set_user_fields(user_record, {"Restaurants Array": resto_arr.toString()});
-        return send_msg(r_question_txt);
+        let messages = [resto_header];
+        let list_chunks = split_on_newline(resto_list.trim());
+        messages = messages.concat(list_chunks);
+        return send_multiple_msgs(messages);
     }
 
     // **********************************************
@@ -196,20 +208,27 @@ async function handle(phone_number, incoming_msg, event) {
                 return send_msg(text);
             }
 
-            let select_hood_txt = await get_text("Select Hood", language) + "\n";
-            let hood_template = await get_text("Text For Hood", language);
+            // Message 1: Header (1/2)
+            let select_hood_header = await get_text("Select Hood", language);
+
+            // Message 2+: List of neighborhoods (2/2)
+            // Build list items without repeating prefix/footer
             let n = 0;
             let hoods = await getHoods(restaurants);
             await set_user_fields(user_record, {"Neighborhoods Array": hoods.toString()})
+
+            let hood_list = "(2/2) ";
             hoods.forEach(function (h) {
                 n++;
-                r_str = h;
-                r_str += "\n";
-                const formatted = format_string(hood_template, {NUMBER: n, SELECTION: r_str});
-                select_hood_txt += "\n" + formatted;
+                hood_list += `Text "${n}" for ${h}\n\n`;
             });
+            hood_list += 'To start over text "RESET".';
+
             await set_phase(user_record, 2);
-            return send_msg(select_hood_txt);
+            let messages = [select_hood_header];
+            let list_chunks = split_on_newline(hood_list.trim());
+            messages = messages.concat(list_chunks);
+            return send_multiple_msgs(messages);
         }
 
         let arr = user_record.get("Restaurants Array");
@@ -245,26 +264,42 @@ async function handle(phone_number, incoming_msg, event) {
             }
         );
 
-        let m = await get_text("Display Menu + Item 1 Amount", language);
         let requested_meals = user_record.get("Requested Meals");
-        let formatted_menu = format_string(m, {
+        let restriction = user_record.get("Dietary Restriction");
+
+        let messages = [];
+
+        // Message 1 (1/4): Dietary restrictions (if applicable)
+        if (restriction) {
+            let restrictions_template = await get_text("Restrictions", language);
+            let msg1 = format_string(restrictions_template, { RESTRICTION: restriction });
+            messages.push(msg1);
+        }
+
+        // Message 2 (2/4): Menu items 1-2
+        let menu_items_1_2_template = await get_text("Display Menu (Items 1-2)", language);
+        let msg2 = format_string(menu_items_1_2_template, {
             RESTAURANT: r_name,
             ONE: menu_item_1,
-            TWO: menu_item_2,
-            THREE: menu_item_3,
-            FOUR: menu_item_4,
-            REQUESTED: requested_meals
+            TWO: menu_item_2
         });
-        let restriction = user_record.get("Dietary Restriction");
-        if (restriction) {
-            let r_temp = await get_text("Restrictions", language) + "\n";
-            let formatted_r = format_string(r_temp, {
-                RESTRICTION: restriction
-            });
-            formatted_menu = formatted_r  + "\n" + formatted_menu;
-        }
+        messages.push(msg2);
+
+        // Message 3 (3/4): Menu items 3-4
+        let menu_items_3_4_template = await get_text("Display Menu (Items 3-4)", language);
+        let msg3 = format_string(menu_items_3_4_template, {
+            THREE: menu_item_3,
+            FOUR: menu_item_4
+        });
+        messages.push(msg3);
+
+        // Message 4 (4/4): Item 1 amount prompt
+        let item1_prompt_template = await get_text("Item 1 Amount", language);
+        let msg4 = format_string(item1_prompt_template, { REQUESTED: requested_meals });
+        messages.push(msg4);
+
         await set_phase(user_record, 4);
-        return send_msg(formatted_menu);
+        return send_multiple_msgs(messages);
     }
 
     // **********************************************
@@ -285,26 +320,29 @@ async function handle(phone_number, incoming_msg, event) {
 
             let restaurants = await get_restaurants_by_hood(n);
 
-            let r_question_txt = await get_text("Select Restaurant", language) + "\n";
-            let tf_template = await get_text("Text For Restaurant", language);
+            // Message 1: Header (1/2)
+            let resto_header = await get_text("Select Restaurant", language);
+
+            // Message 2+: List of restaurants (2/2)
+            // Build list items without repeating prefix/footer
             n = 0;
             let resto_arr=[];
+            let resto_list = "(2/2) ";
 
             restaurants.forEach(function (r) {
                 n++;
-                r_str = r.get("DBA Name");
-                resto_arr.push(r_str);
-                r_str += " (" + r.get("Cuisine Type") + "): ";
-                r_str += r.get("Texting Script Address") + " ";
-                r_str += r.get("Open") + " - " + r.get("Close");
-                r_str += "\n";
-                const formatted = format_string(tf_template, {NUMBER: n, SELECTION: r_str});
-                r_question_txt += "\n" + formatted;
+                let r_name = r.get("DBA Name");
+                resto_arr.push(r_name);
+                resto_list += `Text "${n}" for ${r_name} (${r.get("Cuisine Type")}): ${r.get("Texting Script Address")} ${r.get("Open")} - ${r.get("Close")}\n\n`;
             });
+            resto_list += 'To start over text "RESET". To select a different neighborhood text "BACK".';
 
             await set_phase(user_record, 3);
             await set_user_fields(user_record, {"Restaurants Array": resto_arr.toString()});
-            return send_msg(r_question_txt);
+            let messages = [resto_header];
+            let list_chunks = split_on_newline(resto_list.trim());
+            messages = messages.concat(list_chunks);
+            return send_multiple_msgs(messages);
         }
 
         let item_1_amount = parseInt(incoming_msg);
@@ -331,9 +369,9 @@ async function handle(phone_number, incoming_msg, event) {
         // Check if they want all of the first item
         if (item_1_amount == requested) {
             // Function: END GAME!
-            let text = await finish_order(phone_number, language);
+            let messages = await finish_order(phone_number, language);
             await set_phase(user_record, 98);
-            return send_msg(text);
+            return send_multiple_msgs(messages);
         }
 
         user_record = await get_family_record(phone_number);
@@ -373,9 +411,9 @@ async function handle(phone_number, incoming_msg, event) {
         // Check if they want only all of their items to be 1+2
         if (remaining - item_2_amount == 0) {
             // Function: END GAME!
-            let text = await finish_order(phone_number, language);
+            let messages = await finish_order(phone_number, language);
             await set_phase(user_record, 98);
-            return send_msg(text);
+            return send_multiple_msgs(messages);
         }
 
         user_record = await get_family_record(phone_number);
@@ -415,16 +453,16 @@ async function handle(phone_number, incoming_msg, event) {
         // Check if they want only all of their items to be 1+2+3
         if (remaining - item_3_amount == 0) {
             // Function: END GAME!
-            let text = await finish_order(phone_number, language);
+            let messages = await finish_order(phone_number, language);
             await set_phase(user_record, 98);
-            return send_msg(text);
+            return send_multiple_msgs(messages);
         }
         // Assumption: the remaining will be item #4
         // Function: END GAME!
         remaining = remaining - item_3_amount;
         await set_user_fields(user_record, {"Menu Item #4 Amount": remaining, "Phase": 98});
-        let text = await finish_order(phone_number, language);
-        return send_msg(text);
+        let messages = await finish_order(phone_number, language);
+        return send_multiple_msgs(messages);
     }
 
     // **********************************************
@@ -433,13 +471,24 @@ async function handle(phone_number, incoming_msg, event) {
         let confirmation = parseInt(incoming_msg);
         if (confirmation == 1) {
             user_record = await get_family_record(phone_number);
+            let new_remaining = user_record.get("Vouchers Remaining") - user_record.get("Order Total");
+            let renewal_date = user_record.get("Friendly Renewal Date");
+
+            // Message 1: Order confirmed
             let amt = user_record.get("Order Total") > 6 ? " > 6" : " <= 6";
-            let template = await get_text(`Finish Order${amt}`, language);
-            let formatted = format_string(template, {
+            let confirm_template = await get_text(`Finish Order${amt}`, language);
+            let confirm_msg = format_string(confirm_template, {
                 FAMILYID: user_record.get("Family ID"),
-                REMAINING: user_record.get("Vouchers Remaining") - user_record.get("Order Total"),
+                REMAINING: new_remaining,
                 RESTAURANT: user_record.get("Restaurant Choice"),
-                DATE: user_record.get("Friendly Renewal Date")
+                DATE: renewal_date
+            });
+
+            // Message 2: After confirmation info
+            let after_template = await get_text("After Confirmation", language);
+            let after_msg = format_string(after_template, {
+                REMAINING: new_remaining,
+                DATE: renewal_date
             });
 
             await save_order_log(user_record);
@@ -455,9 +504,9 @@ async function handle(phone_number, incoming_msg, event) {
                 "Menu Item #3": "",
                 "Menu Item #4 Amount": 0,
                 "Menu Item #4": "",
-                "Vouchers Remaining": user_record.get("Vouchers Remaining") - user_record.get("Order Total")
+                "Vouchers Remaining": new_remaining
             });
-            return send_msg(formatted);
+            return send_multiple_msgs([confirm_msg, after_msg]);
         }
 
         if (confirmation != 1) {

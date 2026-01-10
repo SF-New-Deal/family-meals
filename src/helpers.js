@@ -29,20 +29,42 @@ function send_msg(txt) {
     return twiml;
 }
 
+function send_multiple_msgs(messages_array) {
+    const twiml = new twilio.twiml.MessagingResponse();
+    messages_array.forEach(msg => twiml.message(msg));
+    return twiml;
+}
+
+function split_on_newline(text, limit = 320) {
+    const messages = [];
+    let remaining = text;
+    while (remaining.length > limit) {
+        let splitIndex = remaining.lastIndexOf('\n', limit);
+        if (splitIndex === -1) splitIndex = limit;
+        messages.push(remaining.substring(0, splitIndex).trim());
+        remaining = remaining.substring(splitIndex).trim();
+    }
+    if (remaining) messages.push(remaining);
+    return messages;
+}
+
 function format_string(s, d) {
     return s.replace(/\[([A-Z]+)\]/g, function(s,p) { return d[p] });
 }
 
 async function get_text(shortname, language) {
     const base = initializeAirtable();
-    let ts = base("Texting Script v2.0");
+    let ts = base("Texting Script v3.0 [SANDBOX]");
     let s = ts.select({filterByFormula: '{Short Name}="' + shortname + '"'});
     let a = s.all();
     let records = await a;
+    if (!records || records.length === 0) {
+        return null;
+    }
     let rv = records[0].get(language);
     if (rv) rv = rv.trim();
     if (!rv) rv = records[0].get("English");
-    return rv.trim();
+    return rv ? rv.trim() : null;
 }
 
 async function set_user_fields(user_record, new_fields) {
@@ -112,26 +134,37 @@ async function get_restaurant_by_name(name) {
 
 async function finish_order(phone_number, language) {
     let user_record = await get_family_record(phone_number);
-    let template = await get_text("Final Order Intro", language);
-    let menu_item_1_amt = user_record.get("Menu Item #1 Amount");
+    let menu_item_1_amt = user_record.get("Menu Item #1 Amount") || 0;
     let menu_item_1 = user_record.get("Menu Item #1");
-    let menu_item_2_amt = user_record.get("Menu Item #2 Amount");
+    let menu_item_2_amt = user_record.get("Menu Item #2 Amount") || 0;
     let menu_item_2 = user_record.get("Menu Item #2");
-    let menu_item_3_amt = user_record.get("Menu Item #3 Amount");
+    let menu_item_3_amt = user_record.get("Menu Item #3 Amount") || 0;
     let menu_item_3 = user_record.get("Menu Item #3");
-    let menu_item_4_amt = user_record.get("Menu Item #4 Amount");
+    let menu_item_4_amt = user_record.get("Menu Item #4 Amount") || 0;
     let menu_item_4 = user_record.get("Menu Item #4");
-    let text = format_string(template, {
+
+    // Message 1 (1/3): Items 1-2
+    let msg1_template = await get_text("Final Order Intro", language);
+    let msg1 = format_string(msg1_template, {
         ITEMONEAMOUNT: menu_item_1_amt,
         ITEMONE: menu_item_1,
         ITEMTWOAMOUNT: menu_item_2_amt,
-        ITEMTWO: menu_item_2,
+        ITEMTWO: menu_item_2
+    });
+
+    // Message 2 (2/3): Items 3-4
+    let msg2_template = await get_text("Final Order 2", language);
+    let msg2 = format_string(msg2_template, {
         ITEMTHREEAMOUNT: menu_item_3_amt,
         ITEMTHREE: menu_item_3,
         ITEMFOURAMOUNT: menu_item_4_amt,
         ITEMFOUR: menu_item_4
     });
-    return text;
+
+    // Message 3 (3/3): Confirmation prompt
+    let msg3 = await get_text("Final Order 3", language);
+
+    return [msg1, msg2, msg3];
 }
 
 async function save_order_log(user_record) {
@@ -207,6 +240,8 @@ async function redemption_check(rec) {
 module.exports = {
     fallthrough,
     send_msg,
+    send_multiple_msgs,
+    split_on_newline,
     format_string,
     get_text,
     send_translated_msg,
