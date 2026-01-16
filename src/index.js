@@ -553,12 +553,22 @@ exports.lambdaHandler = async (event, context) => {
     } catch (error) {
         console.error('Error processing request:', error);
 
+        // Check for Airtable errors (database issues)
+        const isAirtableError = error.error === 'SERVICE_UNAVAILABLE' ||
+                                error.error === 'RATE_LIMIT_REACHED' ||
+                                error.name === 'AirtableError' ||
+                                (error.message && error.message.includes('Airtable'));
+
+        const errorMessage = isAirtableError
+            ? 'Sorry, the system is experiencing technical difficulties. Please wait one minute and try again by texting "RESET".\n\nIf you\'re still experiencing issues after that, contact the SF New Deal call center at (415) 480-1185. If nobody is available to assist, leave a voicemail with your name and phone number.'
+            : 'Sorry, there was an error processing your request. Please try again.';
+
         return {
             statusCode: 500,
             headers: {
                 'Content-Type': 'text/xml'
             },
-            body: '<?xml version="1.0" encoding="UTF-8"?><Response><Message>Sorry, there was an error processing your request. Please try again.</Message></Response>'
+            body: `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${errorMessage}</Message></Response>`
         };
     }
 };
