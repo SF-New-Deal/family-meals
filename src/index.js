@@ -1,7 +1,7 @@
 const {
     fallthrough,
     send_msg,
-    send_multiple_msgs,
+    send_multiple_msgs_with_delay,
     split_on_newline,
     format_string,
     get_text,
@@ -137,7 +137,7 @@ async function handle(phone_number, incoming_msg, event) {
         let messages = [select_hood_header];
         let list_chunks = split_on_newline(hood_list.trim());
         messages = messages.concat(list_chunks);
-        return send_multiple_msgs(messages);
+        return send_multiple_msgs_with_delay(phone_number, messages);
     }
 
     // **********************************************
@@ -188,7 +188,7 @@ async function handle(phone_number, incoming_msg, event) {
         let messages = [resto_header];
         let list_chunks = split_on_newline(resto_list.trim());
         messages = messages.concat(list_chunks);
-        return send_multiple_msgs(messages);
+        return send_multiple_msgs_with_delay(phone_number, messages);
     }
 
     // **********************************************
@@ -228,7 +228,7 @@ async function handle(phone_number, incoming_msg, event) {
             let messages = [select_hood_header];
             let list_chunks = split_on_newline(hood_list.trim());
             messages = messages.concat(list_chunks);
-            return send_multiple_msgs(messages);
+            return send_multiple_msgs_with_delay(phone_number, messages);
         }
 
         let arr = user_record.get("Restaurants Array");
@@ -299,7 +299,7 @@ async function handle(phone_number, incoming_msg, event) {
         messages.push(msg4);
 
         await set_phase(user_record, 4);
-        return send_multiple_msgs(messages);
+        return send_multiple_msgs_with_delay(phone_number, messages);
     }
 
     // **********************************************
@@ -342,7 +342,7 @@ async function handle(phone_number, incoming_msg, event) {
             let messages = [resto_header];
             let list_chunks = split_on_newline(resto_list.trim());
             messages = messages.concat(list_chunks);
-            return send_multiple_msgs(messages);
+            return send_multiple_msgs_with_delay(phone_number, messages);
         }
 
         let item_1_amount = parseInt(incoming_msg);
@@ -371,7 +371,7 @@ async function handle(phone_number, incoming_msg, event) {
             // Function: END GAME!
             let messages = await finish_order(phone_number, language);
             await set_phase(user_record, 98);
-            return send_multiple_msgs(messages);
+            return send_multiple_msgs_with_delay(phone_number, messages);
         }
 
         user_record = await get_family_record(phone_number);
@@ -413,7 +413,7 @@ async function handle(phone_number, incoming_msg, event) {
             // Function: END GAME!
             let messages = await finish_order(phone_number, language);
             await set_phase(user_record, 98);
-            return send_multiple_msgs(messages);
+            return send_multiple_msgs_with_delay(phone_number, messages);
         }
 
         user_record = await get_family_record(phone_number);
@@ -455,14 +455,14 @@ async function handle(phone_number, incoming_msg, event) {
             // Function: END GAME!
             let messages = await finish_order(phone_number, language);
             await set_phase(user_record, 98);
-            return send_multiple_msgs(messages);
+            return send_multiple_msgs_with_delay(phone_number, messages);
         }
         // Assumption: the remaining will be item #4
         // Function: END GAME!
         remaining = remaining - item_3_amount;
         await set_user_fields(user_record, {"Menu Item #4 Amount": remaining, "Phase": 98});
         let messages = await finish_order(phone_number, language);
-        return send_multiple_msgs(messages);
+        return send_multiple_msgs_with_delay(phone_number, messages);
     }
 
     // **********************************************
@@ -506,7 +506,7 @@ async function handle(phone_number, incoming_msg, event) {
                 "Menu Item #4": "",
                 "Vouchers Remaining": new_remaining
             });
-            return send_multiple_msgs([confirm_msg, after_msg]);
+            return send_multiple_msgs_with_delay(phone_number, [confirm_msg, after_msg]);
         }
 
         if (confirmation != 1) {
@@ -518,6 +518,12 @@ async function handle(phone_number, incoming_msg, event) {
 
 exports.lambdaHandler = async (event, context) => {
     try {
+        // Handle warmup pings from CloudWatch scheduled events
+        if (event.warmup) {
+            console.log('Warmup ping received, keeping Lambda warm');
+            return { statusCode: 200, body: 'Warm' };
+        }
+
         console.log('Received event:', JSON.stringify(event, null, 2));
 
         // Parse form data from Twilio webhook

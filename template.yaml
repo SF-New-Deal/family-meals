@@ -8,7 +8,7 @@ Description: >
 Globals:
   Function:
     Timeout: 30
-    MemorySize: 256
+    MemorySize: 512
 
 Parameters:
   AirtableApiKey:
@@ -18,6 +18,16 @@ Parameters:
   AirtableBaseKey:
     Type: String
     Description: Airtable Base Key
+  TwilioAccountSid:
+    Type: String
+    Description: Twilio Account SID
+  TwilioAuthToken:
+    Type: String
+    Description: Twilio Auth Token
+    NoEcho: true
+  TwilioPhoneNumber:
+    Type: String
+    Description: Twilio Phone Number (E.164 format)
 
 Resources:
   FamilyMealsFunction:
@@ -30,12 +40,21 @@ Resources:
         Variables:
           AIRTABLE_API_KEY: !Ref AirtableApiKey
           AIRTABLE_BASE_KEY: !Ref AirtableBaseKey
+          TWILIO_ACCOUNT_SID: !Ref TwilioAccountSid
+          TWILIO_AUTH_TOKEN: !Ref TwilioAuthToken
+          TWILIO_PHONE_NUMBER: !Ref TwilioPhoneNumber
       Events:
         TwilioWebhook:
           Type: Api
           Properties:
             Path: /webhook
             Method: post
+        WarmupSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+            Description: Keep Lambda warm to avoid cold starts
+            Input: '{"warmup": true}'
 
 Outputs:
   TwilioWebhookApi:

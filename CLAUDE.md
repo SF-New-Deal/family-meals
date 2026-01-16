@@ -43,6 +43,9 @@ Required tables in Airtable:
 Environment variables needed:
 - `AIRTABLE_API_KEY`: Your Airtable API key
 - `AIRTABLE_BASE_KEY`: Your Airtable base ID
+- `TWILIO_ACCOUNT_SID`: Twilio Account SID
+- `TWILIO_AUTH_TOKEN`: Twilio Auth Token
+- `TWILIO_PHONE_NUMBER`: Twilio phone number in E.164 format (e.g., +14155551234)
 
 ## Configuration
 
@@ -64,3 +67,11 @@ This was migrated from Twilio Serverless Functions to AWS Lambda:
 - Changed environment variable access from `context.VAR` to `process.env.VAR`
 - Updated response format for API Gateway compatibility
 - Maintained all original conversation logic and user experience
+
+## TODO: Dual Environment Setup
+
+Set up separate AWS deployments for testing and production:
+- **Sandbox**: Current deployment using test phone number (+14152347709)
+- **Production**: Needs separate stack with production Twilio phone number
+
+This can be done using SAM configuration environments in `samconfig.toml` or separate config files (e.g., `samconfig-prod.toml`).

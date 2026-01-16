@@ -2,6 +2,21 @@ const airtable = require("airtable");
 const twilio = require("twilio");
 
 let at_base;
+let twilioClient;
+
+function initializeTwilioClient() {
+    if (!twilioClient) {
+        twilioClient = twilio(
+            process.env.TWILIO_ACCOUNT_SID,
+            process.env.TWILIO_AUTH_TOKEN
+        );
+    }
+    return twilioClient;
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 function initializeAirtable() {
   if (!at_base) {
@@ -31,8 +46,35 @@ function send_msg(txt) {
 
 function send_multiple_msgs(messages_array) {
     const twiml = new twilio.twiml.MessagingResponse();
-    messages_array.forEach(msg => twiml.message(msg));
+    const total = messages_array.length;
+    messages_array.forEach((msg, index) => {
+        const prefix = `(${index + 1}/${total}) `;
+        twiml.message(prefix + msg);
+    });
     return twiml;
+}
+
+async function send_multiple_msgs_with_delay(to_number, messages_array, delay_ms = 1500) {
+    const client = initializeTwilioClient();
+    const from_number = process.env.TWILIO_PHONE_NUMBER;
+    const total = messages_array.length;
+
+    for (let i = 0; i < messages_array.length; i++) {
+        const prefix = `(${i + 1}/${total}) `;
+        await client.messages.create({
+            body: prefix + messages_array[i],
+            from: from_number,
+            to: to_number
+        });
+
+        // Add delay between messages (except after the last one)
+        if (i < messages_array.length - 1) {
+            await delay(delay_ms);
+        }
+    }
+
+    // Return empty TwiML since we sent messages via REST API
+    return new twilio.twiml.MessagingResponse();
 }
 
 function split_on_newline(text, limit = 320) {
@@ -241,6 +283,7 @@ module.exports = {
     fallthrough,
     send_msg,
     send_multiple_msgs,
+    send_multiple_msgs_with_delay,
     split_on_newline,
     format_string,
     get_text,
