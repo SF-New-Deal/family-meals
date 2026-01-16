@@ -50,7 +50,10 @@ jobs:
           --capabilities CAPABILITY_IAM \
           --parameter-overrides \
             AirtableApiKey="${{ secrets.AIRTABLE_API_KEY }}" \
-            AirtableBaseKey="${{ secrets.AIRTABLE_BASE_KEY }}"
+            AirtableBaseKey="${{ secrets.AIRTABLE_BASE_KEY }}" \
+            TwilioAccountSid="${{ secrets.TWILIO_ACCOUNT_SID }}" \
+            TwilioAuthToken="${{ secrets.TWILIO_AUTH_TOKEN }}" \
+            TwilioPhoneNumber="${{ secrets.TWILIO_PHONE_NUMBER }}"
 
     - name: Get deployment info
       id: deploy-info
