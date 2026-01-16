@@ -1,0 +1,66 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:  # Manual trigger from GitHub UI
+  release:
+    types: [published]
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    environment: production  # Requires approval if you set up environment protection
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Copy package files to src
+      run: |
+        cp package.json src/
+        cp package-lock.json src/
+
+    - name: Setup AWS CLI
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Setup SAM CLI
+      uses: aws-actions/setup-sam@v2
+      with:
+        use-installer: true
+
+    - name: Build SAM application
+      run: sam build
+
+    - name: Deploy to Production
+      run: |
+        sam deploy --no-confirm-changeset --resolve-s3 \
+          --stack-name family-meals-lambda-prod \
+          --region us-east-1 \
+          --capabilities CAPABILITY_IAM \
+          --parameter-overrides \
+            AirtableApiKey="${{ secrets.AIRTABLE_API_KEY }}" \
+            AirtableBaseKey="${{ secrets.AIRTABLE_BASE_KEY }}" \
+            TwilioAccountSid="${{ secrets.TWILIO_ACCOUNT_SID }}" \
+            TwilioAuthToken="${{ secrets.TWILIO_AUTH_TOKEN }}" \
+            TwilioPhoneNumber="${{ secrets.TWILIO_PHONE_NUMBER_PROD }}"
+
+    - name: Get API Gateway URL
+      run: |
+        API_URL=$(aws cloudformation describe-stacks \
+          --stack-name family-meals-lambda-prod \
+          --query 'Stacks[0].Outputs[?OutputKey==`TwilioWebhookApi`].OutputValue' \
+          --output text)
+        echo "🚀 Production deployment successful!"
+        echo "📞 Twilio Webhook URL: $API_URL"
