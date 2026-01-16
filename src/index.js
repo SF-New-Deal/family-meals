@@ -27,8 +27,13 @@ async function handle(phone_number, incoming_msg, event) {
     }
     let user_record = await get_family_record(phone_number);
 
-    if (!user_record || user_record.get("Waitlist") ) {
+    if (!user_record) {
         return send_translated_msg("English", "No Number Found");
+    }
+
+    if (user_record.get("Waitlist")) {
+        let language = user_record.get("Language") || "English";
+        return send_translated_msg(language, "No Number Found");
     }
 
     let unenrolledResult = await unenrolled_check(user_record);
