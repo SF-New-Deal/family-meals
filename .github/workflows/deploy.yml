@@ -54,7 +54,7 @@ jobs:
     - name: Deploy to AWS (main branch)
       if: github.ref == 'refs/heads/main'
       run: |
-        sam deploy --no-confirm-changeset --resolve-s3 \
+        sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --resolve-s3 \
           --stack-name family-meals-lambda \
           --region us-east-1 \
           --capabilities CAPABILITY_IAM \

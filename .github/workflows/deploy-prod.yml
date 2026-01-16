@@ -45,7 +45,7 @@ jobs:
 
     - name: Deploy to Production
       run: |
-        sam deploy --no-confirm-changeset --resolve-s3 \
+        sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --resolve-s3 \
           --stack-name family-meals-lambda-prod \
           --region us-east-1 \
           --capabilities CAPABILITY_IAM \
