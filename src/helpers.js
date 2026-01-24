@@ -94,6 +94,14 @@ function format_string(s, d) {
     return s.replace(/\[([A-Z]+)\]/g, function(s,p) { return d[p] });
 }
 
+function getMenuItemWithFallback(record, itemNumber, language) {
+    let item = record.get(`Menu Item #${itemNumber} ${language}`);
+    if (!item && language !== "English") {
+        item = record.get(`Menu Item #${itemNumber} English`);
+    }
+    return item || "";
+}
+
 async function get_text(shortname, language) {
     const base = initializeAirtable();
     let ts = base("Texting Script v3.0 [SANDBOX]");
@@ -287,6 +295,7 @@ module.exports = {
     split_on_newline,
     format_string,
     get_text,
+    getMenuItemWithFallback,
     send_translated_msg,
     set_user_fields,
     set_phase,

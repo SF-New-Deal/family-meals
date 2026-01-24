@@ -5,6 +5,7 @@ const {
     split_on_newline,
     format_string,
     get_text,
+    getMenuItemWithFallback,
     send_translated_msg,
     set_user_fields,
     set_phase,
@@ -131,12 +132,15 @@ async function handle(phone_number, incoming_msg, event) {
         let hoods = await getHoods(restaurants);
         await set_user_fields(user_record, {"Neighborhoods Array": hoods.toString()})
 
+        let hood_list_item_template = await get_text("Hood List Item", language);
+        let hood_list_footer = await get_text("Hood List Footer", language);
+
         let hood_list = "";
         hoods.forEach(function (h) {
             n++;
-            hood_list += `Text "${n}" for ${h}\n\n`;
+            hood_list += format_string(hood_list_item_template, { NUMBER: n, SELECTION: h }) + "\n\n";
         });
-        hood_list += 'To start over text "RESET".';
+        hood_list += hood_list_footer;
 
         await set_phase(user_record, 2);
         let messages = [select_hood_header];
@@ -180,13 +184,23 @@ async function handle(phone_number, incoming_msg, event) {
         let resto_arr=[];
         let resto_list = "";
 
+        let resto_list_item_template = await get_text("Restaurant List Item", language);
+        let resto_list_footer = await get_text("Restaurant List Footer", language);
+
         restaurants.forEach(function (r) {
             n++;
             let r_name = r.get("DBA Name");
             resto_arr.push(r_name);
-            resto_list += `Text "${n}" for ${r_name} (${r.get("Cuisine Type")}): ${r.get("Texting Script Address")} ${r.get("Open")} - ${r.get("Close")}\n\n`;
+            resto_list += format_string(resto_list_item_template, {
+                NUMBER: n,
+                NAME: r_name,
+                CUISINE: r.get("Cuisine Type"),
+                ADDRESS: r.get("Texting Script Address"),
+                OPEN: r.get("Open"),
+                CLOSE: r.get("Close")
+            }) + "\n\n";
         });
-        resto_list += 'To start over text "RESET". To select a different neighborhood text "BACK".';
+        resto_list += resto_list_footer;
 
         await set_phase(user_record, 3);
         await set_user_fields(user_record, {"Restaurants Array": resto_arr.toString()});
@@ -222,12 +236,15 @@ async function handle(phone_number, incoming_msg, event) {
             let hoods = await getHoods(restaurants);
             await set_user_fields(user_record, {"Neighborhoods Array": hoods.toString()})
 
+            let hood_list_item_template = await get_text("Hood List Item", language);
+            let hood_list_footer = await get_text("Hood List Footer", language);
+
             let hood_list = "";
             hoods.forEach(function (h) {
                 n++;
-                hood_list += `Text "${n}" for ${h}\n\n`;
+                hood_list += format_string(hood_list_item_template, { NUMBER: n, SELECTION: h }) + "\n\n";
             });
-            hood_list += 'To start over text "RESET".';
+            hood_list += hood_list_footer;
 
             await set_phase(user_record, 2);
             let messages = [select_hood_header];
@@ -255,10 +272,10 @@ async function handle(phone_number, incoming_msg, event) {
         let r = await get_restaurant_by_name(r_txt);
 
         let r_name = r.get("DBA Name");
-        let menu_item_1 = r.get(`Menu Item #1 ${language}`);
-        let menu_item_2 = r.get(`Menu Item #2 ${language}`);
-        let menu_item_3 = r.get(`Menu Item #3 ${language}`);
-        let menu_item_4 = r.get(`Menu Item #4 ${language}`);
+        let menu_item_1 = getMenuItemWithFallback(r, 1, language);
+        let menu_item_2 = getMenuItemWithFallback(r, 2, language);
+        let menu_item_3 = getMenuItemWithFallback(r, 3, language);
+        let menu_item_4 = getMenuItemWithFallback(r, 4, language);
         await set_user_fields(
             user_record, {
                 "Restaurant Choice": r_name,
@@ -334,13 +351,23 @@ async function handle(phone_number, incoming_msg, event) {
             let resto_arr=[];
             let resto_list = "";
 
+            let resto_list_item_template = await get_text("Restaurant List Item", language);
+            let resto_list_footer = await get_text("Restaurant List Footer", language);
+
             restaurants.forEach(function (r) {
                 n++;
                 let r_name = r.get("DBA Name");
                 resto_arr.push(r_name);
-                resto_list += `Text "${n}" for ${r_name} (${r.get("Cuisine Type")}): ${r.get("Texting Script Address")} ${r.get("Open")} - ${r.get("Close")}\n\n`;
+                resto_list += format_string(resto_list_item_template, {
+                    NUMBER: n,
+                    NAME: r_name,
+                    CUISINE: r.get("Cuisine Type"),
+                    ADDRESS: r.get("Texting Script Address"),
+                    OPEN: r.get("Open"),
+                    CLOSE: r.get("Close")
+                }) + "\n\n";
             });
-            resto_list += 'To start over text "RESET". To select a different neighborhood text "BACK".';
+            resto_list += resto_list_footer;
 
             await set_phase(user_record, 3);
             await set_user_fields(user_record, {"Restaurants Array": resto_arr.toString()});
