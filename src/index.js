@@ -19,11 +19,15 @@ const {
     unenrolled_check,
     redemption_check,
     save_order_log,
-    getHoods
+    getHoods,
+    getTranslatedRestriction
 } = require('./helpers');
 
 async function handle(phone_number, incoming_msg, event) {
-    if(incoming_msg.toString().toLowerCase()== "help") {
+    // HARD-CODED HELP WORDS - must return early to let Twilio console handle help response
+    let help_words = ["help", "ayuda", "幫助", "帮助", "يساعد", "مساعدة"];
+    let msg_normalized = incoming_msg.toString().toLowerCase();
+    if (help_words.includes(msg_normalized) || help_words.includes(incoming_msg.toString())) {
         return send_msg(null);
     }
     let user_record = await get_family_record(phone_number);
@@ -152,6 +156,22 @@ async function handle(phone_number, incoming_msg, event) {
     // **********************************************
     // Phase 2: Incoming msg is neighborhood selection
     if (phase == 2) {
+        // Check to see if user wants to go back
+        let back_words = ["back", "رجع", "atrás", "atras", "返回", "Quay lại"];
+        if (back_words.includes(String(incoming_msg).toLowerCase()) || back_words.includes(String(incoming_msg))) {
+            // Go back to Phase 0 (number of meals selection)
+            await set_phase(user_record, 0);
+            let text = (vouchers_remaining == 1) ? "Number of Meals 1" : "Number of Meals Multiple";
+            let template = await get_text(text, language);
+            let formatted = format_string(template, {
+                MEALS: vouchers_remaining,
+                DATE: renewal_date,
+                FAMILYID: familyId
+            });
+            await set_phase(user_record, 1);
+            return send_msg(formatted);
+        }
+
         // Retreive previous list of neighborhoods
         let h = user_record.get("Neighborhoods Array");
         let hood_arr = h.split(',')
@@ -294,7 +314,8 @@ async function handle(phone_number, incoming_msg, event) {
         // Message 1 (1/4): Dietary restrictions (if applicable)
         if (restriction) {
             let restrictions_template = await get_text("Restrictions", language);
-            let msg1 = format_string(restrictions_template, { RESTRICTION: restriction });
+            let translatedRestriction = getTranslatedRestriction(restriction, language);
+            let msg1 = format_string(restrictions_template, { RESTRICTION: translatedRestriction });
             messages.push(msg1);
         }
 

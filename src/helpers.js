@@ -94,6 +94,13 @@ function format_string(s, d) {
     return s.replace(/\[([A-Z]+)\]/g, function(s,p) { return d[p] });
 }
 
+// Wraps text in Unicode bidirectional isolate characters to prevent RTL/LTR mixing issues
+// FSI (First Strong Isolate) + text + PDI (Pop Directional Isolate)
+function bidi_wrap(text) {
+    if (!text) return text;
+    return '\u2068' + text + '\u2069';
+}
+
 function getMenuItemWithFallback(record, itemNumber, language) {
     let item = record.get(`Menu Item #${itemNumber} ${language}`);
     if (!item && language !== "English") {
@@ -104,16 +111,21 @@ function getMenuItemWithFallback(record, itemNumber, language) {
 
 async function get_text(shortname, language) {
     const base = initializeAirtable();
-    let ts = base("Texting Script v3.0 [SANDBOX]");
+    let ts = base("Texting Script v3.0");
     let s = ts.select({filterByFormula: '{Short Name}="' + shortname + '"'});
     let a = s.all();
     let records = await a;
     if (!records || records.length === 0) {
+        console.log(`[get_text] No record found for shortname: "${shortname}"`);
         return null;
     }
     let rv = records[0].get(language);
+    console.log(`[get_text] shortname="${shortname}", language="${language}", value=${rv ? `"${rv.substring(0, 50)}..."` : "NULL/EMPTY"}`);
     if (rv) rv = rv.trim();
-    if (!rv) rv = records[0].get("English");
+    if (!rv) {
+        console.log(`[get_text] Falling back to English for shortname="${shortname}"`);
+        rv = records[0].get("English");
+    }
     return rv ? rv.trim() : null;
 }
 
@@ -265,12 +277,229 @@ async function get_family_record(phone_number) {
     return match;
 }
 
+// Hardcoded translations for "Why Unenrolled?" reasons
+const unenrolledReasons = {
+    "Aged out": {
+        English: "Aged out",
+        Spanish: "Envejecido",
+        Chinese: "超齡",
+        Arabic: "تم الوصول إلى حد العمر"
+    },
+    "Left the school/site": {
+        English: "Left the school/site",
+        Spanish: "Dejó la escuela/sitio",
+        Chinese: "已離開學校/站點",
+        Arabic: "ترك المدرسة / الموقع"
+    },
+    "Been inactive": {
+        English: "Been inactive",
+        Spanish: "Estado inactivo",
+        Chinese: "沒有參與",
+        Arabic: "كان غير نشط"
+    },
+    "Insufficient eligibility": {
+        English: "Insufficient eligibility",
+        Spanish: "Elegibilidad insuficiente",
+        Chinese: "不符合資格要求",
+        Arabic: "غير مؤهل"
+    },
+    "Become food secure": {
+        English: "Become food secure",
+        Spanish: "Seguridad alimentaria",
+        Chinese: "食品安全問題得到解決",
+        Arabic: "كن آمنا غذائيا"
+    },
+    "No longer wishes to participate": {
+        English: "No longer wishes to participate",
+        Spanish: "No desea seguir participando",
+        Chinese: "不希望再參加活動",
+        Arabic: "لم تعد ترغب في المشاركة"
+    },
+    "Been temporary unenrolled": {
+        English: "Been temporary unenrolled",
+        Spanish: "Temporalmente no inscrito",
+        Chinese: "臨時被移出活動",
+        Arabic: "تم إلغاء تسجيلك مؤقتًا"
+    },
+    "Repeated meal overages": {
+        English: "Repeated meal overages",
+        Spanish: "Pedidos excesivos de comidas",
+        Chinese: "持續超額領餐",
+        Arabic: "وجبات متكررة ما استخدمت"
+    },
+    "Reason unknown": {
+        English: "Reason unknown",
+        Spanish: "Razón desconocida",
+        Chinese: "未知原因",
+        Arabic: "السبب غير معروف"
+    }
+};
+
+function getTranslatedReason(reason, language) {
+    if (unenrolledReasons[reason] && unenrolledReasons[reason][language]) {
+        return unenrolledReasons[reason][language];
+    }
+    // Fallback to English if translation not found, or original reason if not in lookup
+    if (unenrolledReasons[reason]) {
+        return unenrolledReasons[reason].English;
+    }
+    return reason;
+}
+
+// Hardcoded translations for "Dietary Restriction" values
+const dietaryRestrictions = {
+    "No dietary restrictions": {
+        English: "No dietary restrictions",
+        Spanish: "Sin restricciones dietéticas",
+        Chinese: "沒有飲食禁忌",
+        Arabic: "لا يوجد قيود غذائية"
+    },
+    "Vegetarian": {
+        English: "Vegetarian",
+        Spanish: "Vegetariano",
+        Chinese: "素食",
+        Arabic: "نباتي"
+    },
+    "Vegan": {
+        English: "Vegan",
+        Spanish: "Vegano",
+        Chinese: "全素食，不含蛋奶",
+        Arabic: "نباتي"
+    },
+    "Nut Allergy": {
+        English: "Nut Allergy",
+        Spanish: "Alergia (Nueces)",
+        Chinese: "堅果過敏",
+        Arabic: "حساسية المكسرات"
+    },
+    "Seafood Allergy": {
+        English: "Seafood Allergy",
+        Spanish: "Alergia (Mariscos)",
+        Chinese: "海鮮過敏",
+        Arabic: "حساسية من المأكولات البحرية"
+    },
+    "Lactose Intolerant": {
+        English: "Lactose Intolerant",
+        Spanish: "Intolerante a Lactosa",
+        Chinese: "乳糖不耐受",
+        Arabic: "عدم تحمل اللاكتوز"
+    },
+    "Diabetic": {
+        English: "Diabetic",
+        Spanish: "Diabético",
+        Chinese: "糖尿病患者",
+        Arabic: "سكري"
+    },
+    "No Pork": {
+        English: "No Pork",
+        Spanish: "Sin Cerdo",
+        Chinese: "不要豬肉",
+        Arabic: "لا لحم خنزير"
+    },
+    "Halal": {
+        English: "Halal",
+        Spanish: "Halal",
+        Chinese: "清真",
+        Arabic: "حلال"
+    },
+    "Citrus Allergy": {
+        English: "Citrus Allergy",
+        Spanish: "Alergia (Cítricos)",
+        Chinese: "柑橘類過敏",
+        Arabic: "حساسية الحمضيات"
+    },
+    "Gluten Allergy": {
+        English: "Gluten Allergy",
+        Spanish: "Alergia (Gluten)",
+        Chinese: "麩質過敏",
+        Arabic: "حساسية الغلوتين"
+    },
+    "No Egg": {
+        English: "No Egg",
+        Spanish: "Sin Huevo",
+        Chinese: "不要雞蛋",
+        Arabic: "لا بيضة"
+    },
+    "Soy Allergy": {
+        English: "Soy Allergy",
+        Spanish: "Alergia (Soja)",
+        Chinese: "豆製品過敏",
+        Arabic: "حساسية الصويا"
+    },
+    "Avocado Allergy": {
+        English: "Avocado Allergy",
+        Spanish: "Alergia (Aguacate)",
+        Chinese: "牛油果過敏",
+        Arabic: "حساسية الأفوكادو"
+    },
+    "Scallop Allergy": {
+        English: "Scallop Allergy",
+        Spanish: "Alergia (Vieiras)",
+        Chinese: "扇貝過敏",
+        Arabic: "حساسية البطلينوس"
+    },
+    "Cinnamon Allergy": {
+        English: "Cinnamon Allergy",
+        Spanish: "Alergia (Canela)",
+        Chinese: "肉桂過敏",
+        Arabic: "حساسية القرفة"
+    },
+    "Grapeseed Oil Allergy": {
+        English: "Grapeseed Oil Allergy",
+        Spanish: "Alergia (Aceite de Semilla de Uva)",
+        Chinese: "葡萄籽油過敏",
+        Arabic: "حساسية زيت بذور العنب"
+    },
+    "Pineapple Allergy": {
+        English: "Pineapple Allergy",
+        Spanish: "Alergia (Piña)",
+        Chinese: "菠蘿過敏",
+        Arabic: "حساسية الأناناس"
+    },
+    "Honey Allergy": {
+        English: "Honey Allergy",
+        Spanish: "Alergia (Miel)",
+        Chinese: "蜂蜜過敏",
+        Arabic: "حساسية العسل"
+    },
+    "Fava Beans Allergy": {
+        English: "Fava Beans Allergy",
+        Spanish: "Alergia (Habas)",
+        Chinese: "蠶豆",
+        Arabic: "حساسية الفول الفارسي"
+    },
+    "Tomato Allergy": {
+        English: "Tomato Allergy",
+        Spanish: "Alergia (Tomate)",
+        Chinese: "番茄過敏",
+        Arabic: "حساسية الطماطم"
+    },
+    "Other Allergy": {
+        English: "Other Allergy",
+        Spanish: "Otras Alergias",
+        Chinese: "其他過敏",
+        Arabic: "حساسية الأخرى"
+    }
+};
+
+function getTranslatedRestriction(restriction, language) {
+    if (dietaryRestrictions[restriction] && dietaryRestrictions[restriction][language]) {
+        return dietaryRestrictions[restriction][language];
+    }
+    // Fallback to English if translation not found, or original if not in lookup
+    if (dietaryRestrictions[restriction]) {
+        return dietaryRestrictions[restriction].English;
+    }
+    return restriction;
+}
+
 async function unenrolled_check(rec) {
     if (rec.get("Unenrolled")) {
-        let language = rec.get("Language");
-        let reason = rec.get("Why Unenrolled?")
+        let language = rec.get("Language") || "English";
+        let reason = rec.get("Why Unenrolled?");
+        let translatedReason = getTranslatedReason(reason, language);
         let text = await get_text("Unenrolled", language);
-        let formatted = format_string(text, {VAR: reason})
+        let formatted = format_string(text, {VAR: translatedReason});
         return send_msg(formatted);
     }
     return null;
@@ -309,5 +538,7 @@ module.exports = {
     get_restaurants_by_hood,
     finish_order,
     save_order_log,
-    getHoods
+    getHoods,
+    bidi_wrap,
+    getTranslatedRestriction
 };
