@@ -58,6 +58,18 @@ jobs:
             TwilioAuthToken="${{ secrets.TWILIO_AUTH_TOKEN }}" \
             TwilioPhoneNumber="${{ secrets.TWILIO_PHONE_NUMBER }}"
 
+    - name: Ensure Lambda env vars are updated
+      run: |
+        FUNCTION_NAME=$(aws cloudformation describe-stack-resources \
+          --stack-name family-meals-lambda-prod \
+          --query 'StackResources[?ResourceType==`AWS::Lambda::Function`].PhysicalResourceId' \
+          --output text)
+
+        aws lambda update-function-configuration \
+          --function-name "$FUNCTION_NAME" \
+          --environment "Variables={AIRTABLE_API_KEY=${{ secrets.AIRTABLE_API_KEY }},AIRTABLE_BASE_KEY=${{ secrets.AIRTABLE_BASE_KEY }},TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }},TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }},TWILIO_PHONE_NUMBER=${{ secrets.TWILIO_PHONE_NUMBER }}}" \
+          --query 'FunctionName' --output text
+
     - name: Get deployment info
       id: deploy-info
       run: |
