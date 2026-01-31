@@ -48,7 +48,7 @@ jobs:
     - name: Deploy production release
       run: |
         sam deploy --no-confirm-changeset --no-fail-on-empty-changeset --resolve-s3 \
-          --stack-name family-meals-lambda \
+          --stack-name family-meals-lambda-prod \
           --region us-east-1 \
           --capabilities CAPABILITY_IAM \
           --parameter-overrides \
@@ -62,13 +62,13 @@ jobs:
       id: deploy-info
       run: |
         API_URL=$(aws cloudformation describe-stacks \
-          --stack-name family-meals-lambda \
+          --stack-name family-meals-lambda-prod \
           --query 'Stacks[0].Outputs[?OutputKey==`TwilioWebhookApi`].OutputValue' \
           --output text)
         echo "api_url=$API_URL" >> $GITHUB_OUTPUT
 
         FUNCTION_ARN=$(aws cloudformation describe-stacks \
-          --stack-name family-meals-lambda \
+          --stack-name family-meals-lambda-prod \
           --query 'Stacks[0].Outputs[?OutputKey==`FamilyMealsFunction`].OutputValue' \
           --output text 2>/dev/null || echo "N/A")
         echo "function_arn=$FUNCTION_ARN" >> $GITHUB_OUTPUT
