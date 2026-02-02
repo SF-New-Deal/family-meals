@@ -56,7 +56,7 @@ jobs:
             AirtableBaseKey="${{ secrets.AIRTABLE_BASE_KEY }}" \
             TwilioAccountSid="${{ secrets.TWILIO_ACCOUNT_SID }}" \
             TwilioAuthToken="${{ secrets.TWILIO_AUTH_TOKEN }}" \
-            TwilioPhoneNumber="${{ secrets.TWILIO_PHONE_NUMBER }}"
+            TwilioPhoneNumber="${{ secrets.TWILIO_PHONE_NUMBER_PROD }}"
 
     - name: Ensure Lambda env vars are updated
       run: |
@@ -67,7 +67,7 @@ jobs:
 
         aws lambda update-function-configuration \
           --function-name "$FUNCTION_NAME" \
-          --environment "Variables={AIRTABLE_API_KEY=${{ secrets.AIRTABLE_API_KEY }},AIRTABLE_BASE_KEY=${{ secrets.AIRTABLE_BASE_KEY }},TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }},TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }},TWILIO_PHONE_NUMBER=${{ secrets.TWILIO_PHONE_NUMBER }}}" \
+          --environment "Variables={AIRTABLE_API_KEY=${{ secrets.AIRTABLE_API_KEY }},AIRTABLE_BASE_KEY=${{ secrets.AIRTABLE_BASE_KEY }},TWILIO_ACCOUNT_SID=${{ secrets.TWILIO_ACCOUNT_SID }},TWILIO_AUTH_TOKEN=${{ secrets.TWILIO_AUTH_TOKEN }},TWILIO_PHONE_NUMBER=${{ secrets.TWILIO_PHONE_NUMBER_PROD }}}" \
           --query 'FunctionName' --output text
 
     - name: Get deployment info
