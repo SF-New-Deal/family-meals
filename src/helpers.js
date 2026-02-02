@@ -354,6 +354,12 @@ const dietaryRestrictions = {
         Chinese: "沒有飲食禁忌",
         Arabic: "لا يوجد قيود غذائية"
     },
+    "No Restrictions": {
+        English: "No Restrictions",
+        Spanish: "Sin restricciones dietéticas",
+        Chinese: "沒有飲食禁忌",
+        Arabic: "لا يوجد قيود غذائية"
+    },
     "Vegetarian": {
         English: "Vegetarian",
         Spanish: "Vegetariano",
@@ -483,13 +489,60 @@ const dietaryRestrictions = {
 };
 
 function getTranslatedRestriction(restriction, language) {
+    if (!restriction) return restriction;
+
+    let parts;
+
+    // Handle if Airtable returns an array (multi-select field)
+    if (Array.isArray(restriction)) {
+        parts = restriction;
+    } else {
+        // Convert to string if needed
+        const restrictionStr = String(restriction);
+        // Handle multiple comma variants: ASCII comma, full-width comma, ideographic comma
+        const commaRegex = /[,，、]/;
+        if (commaRegex.test(restrictionStr)) {
+            parts = restrictionStr.split(commaRegex).map(r => r.trim());
+        } else {
+            parts = [restrictionStr];
+        }
+    }
+
+    return parts.map(r => translateSingleRestriction(r.trim(), language)).join(', ');
+}
+
+function translateSingleRestriction(restriction, language) {
+    // First try exact match
     if (dietaryRestrictions[restriction] && dietaryRestrictions[restriction][language]) {
         return dietaryRestrictions[restriction][language];
     }
-    // Fallback to English if translation not found, or original if not in lookup
     if (dietaryRestrictions[restriction]) {
         return dietaryRestrictions[restriction].English;
     }
+
+    // Handle bilingual format like "Other Allergy/其他過敏"
+    // The format is "English/Chinese" - extract the appropriate part
+    if (restriction && restriction.includes('/')) {
+        const parts = restriction.split('/');
+        const englishPart = parts[0].trim();
+        const chinesePart = parts[1] ? parts[1].trim() : null;
+
+        // Try to match the English part in our lookup table
+        if (dietaryRestrictions[englishPart] && dietaryRestrictions[englishPart][language]) {
+            return dietaryRestrictions[englishPart][language];
+        }
+        if (dietaryRestrictions[englishPart]) {
+            return dietaryRestrictions[englishPart].English;
+        }
+
+        // If no lookup match, return the appropriate language part directly
+        if (language === 'Chinese' && chinesePart) {
+            return chinesePart;
+        }
+        return englishPart;
+    }
+
+    // Fallback to original if no match found
     return restriction;
 }
 
