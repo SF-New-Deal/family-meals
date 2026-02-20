@@ -332,6 +332,30 @@ const unenrolledReasons = {
         Spanish: "Razón desconocida",
         Chinese: "未知原因",
         Arabic: "السبب غير معروف"
+    },
+    "Duplicate enrollment": {
+        English: "Duplicate enrollment",
+        Spanish: "Inscripción duplicada",
+        Chinese: "重複加入活動",
+        Arabic: "تسجيل مكرر"
+    },
+    "Temporary assistance ended": {
+        English: "Temporary assistance ended",
+        Spanish: "La asistencia temporal ha finalizado",
+        Chinese: "臨時援助結束",
+        Arabic: "انتهت المساعدة المؤقت"
+    },
+    "Missing consent form": {
+        English: "Missing consent form",
+        Spanish: "Falta el formulario de consentimiento",
+        Chinese: "沒有同意表格",
+        Arabic: "نموذج الموافقة مفقود"
+    },
+    "Reached 2 year time limit": {
+        English: "Reached 2 year time limit",
+        Spanish: "Se alcanzó el límite máximo de 2 años de participación",
+        Chinese: "達到了2年上限",
+        Arabic: "تم بلوغ الحد الزمني الأقصى ومدته سنتان"
     }
 };
 
@@ -370,7 +394,7 @@ const dietaryRestrictions = {
         English: "Vegan",
         Spanish: "Vegano",
         Chinese: "全素食，不含蛋奶",
-        Arabic: "نباتي"
+        Arabic: "نباتي صرف"
     },
     "Nut Allergy": {
         English: "Nut Allergy",
@@ -394,7 +418,7 @@ const dietaryRestrictions = {
         English: "Diabetic",
         Spanish: "Diabético",
         Chinese: "糖尿病患者",
-        Arabic: "سكري"
+        Arabic: "مرضى السكري"
     },
     "No Pork": {
         English: "No Pork",
@@ -418,7 +442,7 @@ const dietaryRestrictions = {
         English: "Gluten Allergy",
         Spanish: "Alergia (Gluten)",
         Chinese: "麩質過敏",
-        Arabic: "حساسية الغلوتين"
+        Arabic: "حساسية الغلوتين أو القمح"
     },
     "No Egg": {
         English: "No Egg",
@@ -442,7 +466,7 @@ const dietaryRestrictions = {
         English: "Scallop Allergy",
         Spanish: "Alergia (Vieiras)",
         Chinese: "扇貝過敏",
-        Arabic: "حساسية البطلينوس"
+        Arabic: "إسكالوب"
     },
     "Cinnamon Allergy": {
         English: "Cinnamon Allergy",
