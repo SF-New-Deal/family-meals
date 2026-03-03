@@ -77,6 +77,15 @@ async function send_multiple_msgs_with_delay(to_number, messages_array, delay_ms
     return new twilio.twiml.MessagingResponse();
 }
 
+async function send_reminder_sms(to_number, body) {
+    const client = initializeTwilioClient();
+    await client.messages.create({
+        body: body,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: to_number
+    });
+}
+
 function split_on_newline(text, limit = 320) {
     const messages = [];
     let remaining = text;
@@ -275,6 +284,15 @@ async function get_family_record(phone_number) {
     });
 
     return match;
+}
+
+async function get_enrolled_families() {
+    const base = initializeAirtable();
+    const records = await base("Families").select({
+        filterByFormula: 'AND({Unenrolled}=FALSE(), {Phone number}!="")',
+        fields: ["Phone number", "Language", "Family ID", "Vouchers Remaining", "Redemption Card", "Friendly Renewal Date", "Waitlist", "CBO Text"]
+    }).all();
+    return records;
 }
 
 // Hardcoded translations for "Why Unenrolled?" reasons
@@ -617,5 +635,8 @@ module.exports = {
     save_order_log,
     getHoods,
     bidi_wrap,
-    getTranslatedRestriction
+    getTranslatedRestriction,
+    get_enrolled_families,
+    send_reminder_sms,
+    delay
 };

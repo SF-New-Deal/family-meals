@@ -7,7 +7,7 @@ Description: >
 
 Globals:
   Function:
-    Timeout: 30
+    Timeout: 300
     MemorySize: 512
 
 Parameters:
@@ -55,6 +55,12 @@ Resources:
             Schedule: rate(5 minutes)
             Description: Keep Lambda warm to avoid cold starts
             Input: '{"warmup": true}'
+        MondayReminderSchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 18 ? * MON *)
+            Description: Send Monday morning reminder SMS to enrolled families
+            Input: '{"reminder": true}'
 
 Outputs:
   TwilioWebhookApi:

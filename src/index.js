@@ -20,7 +20,10 @@ const {
     redemption_check,
     save_order_log,
     getHoods,
-    getTranslatedRestriction
+    getTranslatedRestriction,
+    get_enrolled_families,
+    send_reminder_sms,
+    delay
 } = require('./helpers');
 
 async function handle(phone_number, incoming_msg, event) {
@@ -575,6 +578,62 @@ exports.lambdaHandler = async (event, context) => {
         if (event.warmup) {
             console.log('Warmup ping received, keeping Lambda warm');
             return { statusCode: 200, body: 'Warm' };
+        }
+
+        // Handle Monday morning reminder scheduled event
+        if (event.reminder) {
+            console.log('Monday reminder event received');
+            let families = await get_enrolled_families();
+
+            // Test mode: if a test phone number is provided, only send to that number
+            if (event.testPhone) {
+                families = families.filter(f => f.get("Phone number") === event.testPhone);
+                console.log(`Test mode: filtered to ${families.length} family matching ${event.testPhone}`);
+            }
+
+            // Pre-fetch templates per language (avoids redundant Airtable calls)
+            const languages = [...new Set(families.map(f => f.get("Language") || "English"))];
+            const templateCache = {};
+            const redemptionTemplateCache = {};
+            for (const lang of languages) {
+                templateCache[lang] = await get_text("Monday Reminder Texting", lang);
+                redemptionTemplateCache[lang] = await get_text("Monday Reminder Redemption Card", lang);
+            }
+
+            let sent = 0, skipped = 0, errors = 0;
+
+            for (const family of families) {
+                try {
+                    const phone = family.get("Phone number");
+                    const language = family.get("Language") || "English";
+                    const cbo = family.get("CBO Text");
+                    if (!phone) { skipped++; continue; }
+                    if (family.get("Waitlist")) { skipped++; continue; }
+                    if (cbo === "Sf New Deal" || cbo === "SFND QC") { skipped++; continue; }
+
+                    const isRedemptionCard = family.get("Redemption Card");
+                    const template = isRedemptionCard
+                        ? redemptionTemplateCache[language]
+                        : templateCache[language];
+                    if (!template) { skipped++; continue; }
+
+                    const message = format_string(template, {
+                        FAMILYID: family.get("Family ID"),
+                        MEALS: family.get("Vouchers Remaining"),
+                        DATE: family.get("Friendly Renewal Date")
+                    });
+                    await send_reminder_sms(phone, message);
+                    sent++;
+
+                    await delay(1100); // Twilio rate limit: ~1 msg/sec for long codes
+                } catch (err) {
+                    console.error(`Failed to send to ${family.get("Family ID")}:`, err.message);
+                    errors++;
+                }
+            }
+
+            console.log(`Reminder complete. Sent: ${sent}, Skipped: ${skipped}, Errors: ${errors}`);
+            return { statusCode: 200, body: `Sent: ${sent}, Skipped: ${skipped}, Errors: ${errors}` };
         }
 
         console.log('Received event:', JSON.stringify(event, null, 2));
