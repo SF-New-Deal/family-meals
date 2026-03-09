@@ -58,7 +58,7 @@ Resources:
         MondayReminderSchedule:
           Type: Schedule
           Properties:
-            Schedule: cron(0 18 ? * MON *)
+            Schedule: cron(0 19 ? * MON *)
             Description: Send Monday morning reminder SMS to enrolled families
             Input: '{"reminder": true}'
 
