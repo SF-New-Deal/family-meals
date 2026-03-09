@@ -610,6 +610,7 @@ exports.lambdaHandler = async (event, context) => {
                     if (!phone) { skipped++; continue; }
                     if (family.get("Waitlist")) { skipped++; continue; }
                     if (cbo === "Sf New Deal" || cbo === "SFND QC") { skipped++; continue; }
+                    if (!family.get("Vouchers Remaining")) { skipped++; continue; }
 
                     const isRedemptionCard = family.get("Redemption Card");
                     const template = isRedemptionCard
