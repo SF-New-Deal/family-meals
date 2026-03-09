@@ -23,6 +23,7 @@ const {
     getTranslatedRestriction,
     get_enrolled_families,
     send_reminder_sms,
+    translate_date,
     delay
 } = require('./helpers');
 
@@ -87,7 +88,7 @@ async function handle(phone_number, incoming_msg, event) {
         let template = await get_text(text, language);
         let formatted = format_string(template, {
             MEALS: vouchers_remaining,
-            DATE: renewal_date,
+            DATE: translate_date(renewal_date, language),
             FAMILYID: familyId
         });
         await set_phase(user_record, 1);
@@ -116,7 +117,7 @@ async function handle(phone_number, incoming_msg, event) {
             let formatted = format_string(template, {
                 REQUESTED: requested_meals,
                 REMAINING: vouchers_remaining,
-                DATE: renewal_date
+                DATE: translate_date(renewal_date, language)
             });
             return send_msg(formatted);
         }
@@ -168,7 +169,7 @@ async function handle(phone_number, incoming_msg, event) {
             let template = await get_text(text, language);
             let formatted = format_string(template, {
                 MEALS: vouchers_remaining,
-                DATE: renewal_date,
+                DATE: translate_date(renewal_date, language),
                 FAMILYID: familyId
             });
             await set_phase(user_record, 1);
@@ -537,14 +538,14 @@ async function handle(phone_number, incoming_msg, event) {
                 FAMILYID: user_record.get("Family ID"),
                 REMAINING: new_remaining,
                 RESTAURANT: user_record.get("Restaurant Choice"),
-                DATE: renewal_date
+                DATE: translate_date(renewal_date, language)
             });
 
             // Message 2: After confirmation info
             let after_template = await get_text("After Confirmation", language);
             let after_msg = format_string(after_template, {
                 REMAINING: new_remaining,
-                DATE: renewal_date
+                DATE: translate_date(renewal_date, language)
             });
 
             await save_order_log(user_record);
@@ -621,7 +622,7 @@ exports.lambdaHandler = async (event, context) => {
                     const message = format_string(template, {
                         FAMILYID: family.get("Family ID"),
                         MEALS: family.get("Vouchers Remaining"),
-                        DATE: family.get("Friendly Renewal Date")
+                        DATE: translate_date(family.get("Friendly Renewal Date"), language)
                     });
                     await send_reminder_sms(phone, message);
                     sent++;

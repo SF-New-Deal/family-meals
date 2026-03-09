@@ -41,7 +41,7 @@ jobs:
         use-installer: true
 
     - name: Build SAM application
-      run: sam build
+      run: sam build --template-file template-prod.yaml
 
     - name: Deploy to Production
       run: |

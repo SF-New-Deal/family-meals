@@ -103,6 +103,21 @@ function format_string(s, d) {
     return s.replace(/\[([A-Z]+)\]/g, function(s,p) { return d[p] });
 }
 
+function translate_date(dateStr, language) {
+    if (!dateStr || language === "English") return dateStr;
+    const mondayTranslations = {
+        Chinese: "星期一",
+        Spanish: "lunes",
+        Arabic: "الاثنين",
+        Vietnamese: "Thứ hai"
+    };
+    const translated = mondayTranslations[language];
+    if (translated) {
+        return dateStr.replace("Monday", translated);
+    }
+    return dateStr;
+}
+
 // Wraps text in Unicode bidirectional isolate characters to prevent RTL/LTR mixing issues
 // FSI (First Strong Isolate) + text + PDI (Pop Directional Isolate)
 function bidi_wrap(text) {
@@ -168,7 +183,7 @@ async function reset_user(user_record) {
 
 async function over_limit(language, renewal_date) {
     let template = await get_text("Over Limit", language);
-    let formatted = format_string(template, {DATE: renewal_date});
+    let formatted = format_string(template, {DATE: translate_date(renewal_date, language)});
     return send_msg(formatted);
 }
 
@@ -638,5 +653,6 @@ module.exports = {
     getTranslatedRestriction,
     get_enrolled_families,
     send_reminder_sms,
+    translate_date,
     delay
 };
